@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: coptic-whatsapp-bot
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
