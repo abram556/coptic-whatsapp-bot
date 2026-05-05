@@ -1,6 +1,6 @@
 /**
- * results.js — نتيجة اللغة القبطية
- * الملف: natiga.xlsx
+ * results.js â€” ظ†طھظٹط¬ط© ط§ظ„ظ„ط؛ط© ط§ظ„ظ‚ط¨ط·ظٹط©
+ * ط§ظ„ظ…ظ„ظپ: natiga.xlsx
  */
 
 const axios = require('axios');
@@ -9,10 +9,10 @@ const { lookupResult, resultsSize } = require('../lib/resultsDb');
 const resultsSessions = new Map();
 const SESSION_TIMEOUT = 5 * 60 * 1000;
 
-const LEVEL_NAMES = { 1: 'الأول', 2: 'الثاني' };
+const LEVEL_NAMES = { 1: 'ط§ظ„ط£ظˆظ„', 2: 'ط§ظ„ط«ط§ظ†ظٹ' };
 
 function backHint() {
-    return `\n━━━━━━━━━━━━━━━━━━\n📌 *للرجوع للقائمة السابقة:* اكتب 0\n🏠 *للرجوع للقائمة الرئيسية:* اكتب 00`;
+    return `\nâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پ\nًں“Œ *ظ„ظ„ط±ط¬ظˆط¹ ظ„ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ط³ط§ط¨ظ‚ط©:* ط§ظƒطھط¨ 0\nًںڈ  *ظ„ظ„ط±ط¬ظˆط¹ ظ„ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ط±ط¦ظٹط³ظٹط©:* ط§ظƒطھط¨ 00`;
 }
 
 async function resultsCommand(sock, chatId, message) {
@@ -22,17 +22,17 @@ async function resultsCommand(sock, chatId, message) {
         const s2 = resultsSize(2);
         await sock.sendMessage(chatId, {
             text:
-                `🏆 *نتيجة اللغة القبطية*\n\n` +
-                `📊 عدد الطلاب المسجلين:\n` +
-                `• المستوى الأول: ${s1} طالب\n` +
-                `• المستوى الثاني: ${s2} طالب\n\n` +
-                `✏️ *اختر المستوى:*\n` +
-                `1️⃣ المستوى الأول\n` +
-                `2️⃣ المستوى الثاني\n\n` +
+                `ًںڈ† *ظ†طھظٹط¬ط© ط§ظ„ظ„ط؛ط© ط§ظ„ظ‚ط¨ط·ظٹط©*\n\n` +
+                `ًں“ٹ ط¹ط¯ط¯ ط§ظ„ط·ظ„ط§ط¨ ط§ظ„ظ…ط³ط¬ظ„ظٹظ†:\n` +
+                `â€¢ ط§ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط£ظˆظ„: ${s1} ط·ط§ظ„ط¨\n` +
+                `â€¢ ط§ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط«ط§ظ†ظٹ: ${s2} ط·ط§ظ„ط¨\n\n` +
+                `âœڈï¸ڈ *ط§ط®طھط± ط§ظ„ظ…ط³طھظˆظ‰:*\n` +
+                `1ï¸ڈâƒ£ ط§ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط£ظˆظ„\n` +
+                `2ï¸ڈâƒ£ ط§ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط«ط§ظ†ظٹ\n\n` +
                 backHint()
         }, { quoted: message });
     } catch (err) {
-        console.error('❌ resultsCommand:', err);
+        console.error('â‌Œ resultsCommand:', err);
     }
 }
 
@@ -49,7 +49,7 @@ async function handleResultsSession(sock, chatId, message, text) {
     const trimmed = text.trim();
     const num = parseInt(trimmed);
 
-    // معالجة الرجوع
+    // ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط±ط¬ظˆط¹
     if (trimmed === '00') {
         resultsSessions.delete(chatId);
         return { handled: true, backToMain: true };
@@ -63,13 +63,13 @@ async function handleResultsSession(sock, chatId, message, text) {
             const s2 = resultsSize(2);
             await sock.sendMessage(chatId, {
                 text:
-                    `🏆 *نتيجة اللغة القبطية*\n\n` +
-                    `📊 عدد الطلاب المسجلين:\n` +
-                    `• المستوى الأول: ${s1} طالب\n` +
-                    `• المستوى الثاني: ${s2} طالب\n\n` +
-                    `✏️ *اختر المستوى:*\n` +
-                    `1️⃣ المستوى الأول\n` +
-                    `2️⃣ المستوى الثاني\n\n` +
+                    `ًںڈ† *ظ†طھظٹط¬ط© ط§ظ„ظ„ط؛ط© ط§ظ„ظ‚ط¨ط·ظٹط©*\n\n` +
+                    `ًں“ٹ ط¹ط¯ط¯ ط§ظ„ط·ظ„ط§ط¨ ط§ظ„ظ…ط³ط¬ظ„ظٹظ†:\n` +
+                    `â€¢ ط§ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط£ظˆظ„: ${s1} ط·ط§ظ„ط¨\n` +
+                    `â€¢ ط§ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط«ط§ظ†ظٹ: ${s2} ط·ط§ظ„ط¨\n\n` +
+                    `âœڈï¸ڈ *ط§ط®طھط± ط§ظ„ظ…ط³طھظˆظ‰:*\n` +
+                    `1ï¸ڈâƒ£ ط§ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط£ظˆظ„\n` +
+                    `2ï¸ڈâƒ£ ط§ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط«ط§ظ†ظٹ\n\n` +
                     backHint()
             }, { quoted: message });
             return { handled: true };
@@ -84,15 +84,15 @@ async function handleResultsSession(sock, chatId, message, text) {
             session.level = num;
             await sock.sendMessage(chatId, {
                 text:
-                    `🏆 *نتيجة المستوى ${LEVEL_NAMES[num]}*\n\n` +
-                    `📝 أدخل الرقم الكودي الخاص بك:\n` +
-                    `(مثال: 12345)\n\n` +
+                    `ًںڈ† *ظ†طھظٹط¬ط© ط§ظ„ظ…ط³طھظˆظ‰ ${LEVEL_NAMES[num]}*\n\n` +
+                    `ًں“‌ ط£ط¯ط®ظ„ ط§ظ„ط±ظ‚ظ… ط§ظ„ظƒظˆط¯ظٹ ط§ظ„ط®ط§طµ ط¨ظƒ:\n` +
+                    `(ظ…ط«ط§ظ„: 12345)\n\n` +
                     backHint()
             }, { quoted: message });
             return { handled: true };
         }
         await sock.sendMessage(chatId, {
-            text: `⚠️ *خطأ في الإدخال*\n\nيرجى إدخال:\n• 1 للمستوى الأول\n• 2 للمستوى الثاني\n\n` + backHint()
+            text: `âڑ ï¸ڈ *ط®ط·ط£ ظپظٹ ط§ظ„ط¥ط¯ط®ط§ظ„*\n\nظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„:\nâ€¢ 1 ظ„ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط£ظˆظ„\nâ€¢ 2 ظ„ظ„ظ…ط³طھظˆظ‰ ط§ظ„ط«ط§ظ†ظٹ\n\n` + backHint()
         }, { quoted: message });
         return { handled: true };
     }
@@ -106,18 +106,15 @@ async function handleResultsSession(sock, chatId, message, text) {
         if (!certUrl) {
             await sock.sendMessage(chatId, {
                 text:
-                    `❌ *الرقم الكودي غير موجود*\n\n` +
-                    `🔢 الرقم المُدخَل: ${trimmed}\n` +
-                    `📌 المستوى: ${LEVEL_NAMES[level]}\n\n` +
-                    `🔍 تأكد من الرقم وحاول مجدداً\n` +
-                    `📞 أو تواصل مع مسؤول الدورة 👑\n\n` +
-                    `✨ لإعادة المحاولة اكتب *نتيجة* مرة أخرى`
+                    `âڑ ï¸ڈ *ط§ظ„ط±ظ‚ظ… ط§ظ„ظƒظˆط¯ظٹ ط؛ظٹط± ط³ظ„ظٹظ…*\n\n` +
+                    `ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ط±ظ‚ظ…: *${trimmed}* ظپظٹ ظ†طھط§ط¦ط¬ ط§ظ„ظ…ط³طھظˆظ‰ ${LEVEL_NAMES[level]}.\n\n` +
+                    `طھط£ظƒط¯ ظ…ظ† ظƒطھط§ط¨ط© ط§ظ„ط±ظ‚ظ… ط¨ط´ظƒظ„ طµط­ظٹط­ ط£ظˆ طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¥ط¯ط§ط±ط© ًں‘‘`
             }, { quoted: message });
             return { handled: true };
         }
 
-        // إظهار تفاعل التحميل
-        await sock.sendMessage(chatId, { react: { text: '⏳', key: message.key } });
+        // ط¥ط¸ظ‡ط§ط± طھظپط§ط¹ظ„ ط§ظ„طھط­ظ…ظٹظ„
+        await sock.sendMessage(chatId, { react: { text: 'âڈ³', key: message.key } });
 
         try {
             const response = await axios.get(certUrl, {
@@ -131,35 +128,35 @@ async function handleResultsSession(sock, chatId, message, text) {
 
             const imgBuffer = Buffer.from(response.data, 'binary');
             
-            // التحقق من صحة الصورة
+            // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طµط­ط© ط§ظ„طµظˆط±ط©
             if (imgBuffer.length < 500) {
-                throw new Error('الملف فارغ أو غير صالح');
+                throw new Error('ط§ظ„ظ…ظ„ظپ ظپط§ط±ط؛ ط£ظˆ ط؛ظٹط± طµط§ظ„ط­');
             }
 
-            // إظهار تفاعل النجاح
-            await sock.sendMessage(chatId, { react: { text: '✅', key: message.key } });
+            // ط¥ط¸ظ‡ط§ط± طھظپط§ط¹ظ„ ط§ظ„ظ†ط¬ط§ط­
+            await sock.sendMessage(chatId, { react: { text: 'âœ…', key: message.key } });
             
-            // إرسال الشهادة
+            // ط¥ط±ط³ط§ظ„ ط§ظ„ط´ظ‡ط§ط¯ط©
             await sock.sendMessage(chatId, {
                 image: imgBuffer,
                 caption:
-                    `🎓 *شهادة اللغة القبطية*\n\n` +
-                    `📋 المستوى: ${LEVEL_NAMES[level]}\n` +
-                    `🔢 الرقم الكودي: ${trimmed}\n\n` +
-                    `👨‍🏫 مسؤول الدورة: إبرام مرزق\n` +
-                    `🎉 ألف مبروك النجاح!`
+                    `ًںژ“ *ط´ظ‡ط§ط¯ط© ط§ظ„ظ„ط؛ط© ط§ظ„ظ‚ط¨ط·ظٹط©*\n\n` +
+                    `ًں“‹ ط§ظ„ظ…ط³طھظˆظ‰: ${LEVEL_NAMES[level]}\n` +
+                    `ًں”¢ ط§ظ„ط±ظ‚ظ… ط§ظ„ظƒظˆط¯ظٹ: ${trimmed}\n\n` +
+                    `ًں‘¨â€چًںڈ« ظ…ط³ط¤ظˆظ„ ط§ظ„ط¯ظˆط±ط©: ط¥ط¨ط±ط§ظ… ظ…ط±ط²ظ‚\n` +
+                    `ًںژ‰ ط£ظ„ظپ ظ…ط¨ط±ظˆظƒ ط§ظ„ظ†ط¬ط§ط­!`
             }, { quoted: message });
 
         } catch (err) {
-            console.error('❌ خطأ في إرسال الشهادة:', err.message);
-            await sock.sendMessage(chatId, { react: { text: '❌', key: message.key } });
+            console.error('â‌Œ ط®ط·ط£ ظپظٹ ط¥ط±ط³ط§ظ„ ط§ظ„ط´ظ‡ط§ط¯ط©:', err.message);
+            await sock.sendMessage(chatId, { react: { text: 'â‌Œ', key: message.key } });
             await sock.sendMessage(chatId, {
                 text: 
-                    `❌ *تعذّر تحميل الشهادة*\n\n` +
-                    `⚠️ حدث خطأ أثناء تحميل الشهادة\n\n` +
-                    `🔧 يرجى المحاولة لاحقاً\n` +
-                    `📞 أو التواصل مع مسؤول الدورة 👑\n\n` +
-                    `🔗 رابط الشهادة (إذا كنت بحاجة):\n${certUrl}`
+                    `â‌Œ *طھط¹ط°ظ‘ط± طھط­ظ…ظٹظ„ ط§ظ„ط´ظ‡ط§ط¯ط©*\n\n` +
+                    `âڑ ï¸ڈ ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ظ…ظٹظ„ ط§ظ„ط´ظ‡ط§ط¯ط©\n\n` +
+                    `ًں”§ ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ„ط§ط­ظ‚ط§ظ‹\n` +
+                    `ًں“‍ ط£ظˆ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ظ…ط³ط¤ظˆظ„ ط§ظ„ط¯ظˆط±ط© ًں‘‘\n\n` +
+                    `ًں”— ط±ط§ط¨ط· ط§ظ„ط´ظ‡ط§ط¯ط© (ط¥ط°ط§ ظƒظ†طھ ط¨ط­ط§ط¬ط©):\n${certUrl}`
             }, { quoted: message });
         }
 
