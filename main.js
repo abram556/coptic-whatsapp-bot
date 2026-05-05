@@ -27,14 +27,8 @@ const {
 
 const { 
     resultsSize, 
-    addResult, 
-    deleteResult,
-    deleteMultipleResults,
-    updateResult,
-    exportResultsXlsx, 
     reloadResultsDb,
-    getAllResults,
-    getResultEntry
+    registerUserInNatiga
 } = require('./lib/resultsDb');
 
 const { 
@@ -688,6 +682,7 @@ async function handleMessages(sock, messageUpdate) {
 
         if (!message.key.fromMe && !isGroup) {
             registerSubscriber(senderId, message.pushName || '');
+            registerUserInNatiga(senderId); // ظ†ط¸ط§ظ… ط§ظ„ط¨ط¨ظˆظ†: طھط³ط¬ظٹظ„ ظپظٹ ط´ظٹطھ natiga
         }
 
         const rawText = (
