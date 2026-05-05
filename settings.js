@@ -9,7 +9,6 @@ const settings = {
   mode:        'PUBLIC',
   maxStoreMessages:   20,
   storeWriteInterval: 10000,
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbwDoXHYpnsJMXg5O6XOoU8SQBpjOCFXfEcP2uyYggITJYeR1sdRmBeOMDGMyIVC7JRv/exec',
   autoReplies: {
     'hi':      'ط£ظ‡ظ„ط§ظ‹! ًں‘‹ ط§ظƒطھط¨ 1 ظ„ظ„طھط¹ظ„ظ…طŒ 2 ظ„ظ„ظ‚ط§ظ…ظˆط³طŒ 3 ظ„ظ„ظ†طھظٹط¬ط©.',
     'hello':   'ظ…ط±ط­ط¨ط§ظ‹! ًںکٹ ط§ظƒطھط¨ 1 ظ„ظ„طھط¹ظ„ظ…طŒ 2 ظ„ظ„ظ‚ط§ظ…ظˆط³طŒ 3 ظ„ظ„ظ†طھظٹط¬ط©.',
