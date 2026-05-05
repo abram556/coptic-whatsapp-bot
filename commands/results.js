@@ -4,7 +4,7 @@
  */
 
 const axios = require('axios');
-const { lookupResult, resultsSize, getStudentName, checkExamStatus } = require('../lib/resultsDb');
+const { lookupResult, resultsSize, getStudentName, checkExamStatus, checkUserHasCompleted } = require('../lib/resultsDb');
 
 const resultsSessions = new Map();
 const SESSION_TIMEOUT = 5 * 60 * 1000;
@@ -101,7 +101,7 @@ async function handleResultsSession(sock, chatId, message, text) {
         const level = session.level;
         const certUrl = lookupResult(level, trimmed);
 
-        // 1. ط¥ط°ط§ ظˆط¬ط¯طھ ط§ظ„ط´ظ‡ط§ط¯ط©طŒ ط£ط±ط³ظ„ظ‡ط§ ظپظˆط±ط§ظ‹
+        // 1. ط§ظ„ط¨ط­ط« ط§ظ„ط£ط³ط§ط³ظٹ ط¹ظ† ط§ظ„ط´ظ‡ط§ط¯ط©
         if (certUrl) {
             await sock.sendMessage(chatId, { react: { text: 'âڈ³', key: message.key } });
             try {
@@ -121,43 +121,44 @@ async function handleResultsSession(sock, chatId, message, text) {
             }
         }
 
-        // 2. ط¥ط°ط§ ظ„ظ… طھظˆط¬ط¯ ط§ظ„ط´ظ‡ط§ط¯ط©طŒ ظ†ظپط° ظ…ظ†ط·ظ‚ "ط§ظ„ط¨ط¨ظˆظ†" ط§ظ„ط°ظƒظٹ
+        // 2. ط§ظ„طھط­ظ‚ظ‚ ط§ظ„ط¥ط¶ط§ظپظٹ ط§ظ„ط°ظƒظٹ (Babon Logic)
         const studentName = getStudentName(trimmed);
         
         if (studentName) {
-            const { foundAny, status, examNames } = checkExamStatus(level, trimmed);
+            const hasCompleted = checkUserHasCompleted(level, trimmed);
             
-            if (!foundAny) {
-                // ط­ط§ظ„ط© ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط°ظٹ ظ„ظ… ظٹط­ظ„ ط£ظٹ ط§ظ…طھط­ط§ظ†
-                await sock.sendMessage(chatId, {
-                    image: { url: "https://cdn-icons-png.flaticon.com/512/4201/4201973.png" },
-                    caption: `ط¹ظپظˆط§ظ‹ ظٹط§ *${studentName}*طŒ\nâڑ ï¸ڈ ظٹط¬ط¨ ط¨ط¯ط، ط­ظ„ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹط© ظˆط¥ظ†ظ‡ط§ط¦ظ‡ط§ ظ„ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط§ظ„ط´ظ‡ط§ط¯ط©. ًں“ڑâœچï¸ڈ`
-                }, { quoted: message });
-            } else {
-                // ط­ط§ظ„ط© ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط°ظٹ ط­ظ„ ط¨ط¹ط¶ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ظˆظ„ظ… ظٹظƒظ…ظ„ظ‡ط§
-                let missingExams = [];
-                for (let j = 0; j < status.length; j++) {
-                    if (!status[j]) missingExams.push(examNames[j]);
-                }
-
-                if (missingExams.length > 0) {
-                    let formattedMissing = missingExams.map((exam, index) => index === 0 ? exam : exam.replace("ط§ظ„ط§ظ…طھط­ط§ظ† ", ""));
+            if (!hasCompleted) {
+                const { foundAny, status, examNames } = checkExamStatus(level, trimmed);
+                
+                if (!foundAny) {
+                    // ط­ط§ظ„ط© ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط°ظٹ ظ„ظ… ظٹط¨ط¯ط£ ط£ظٹ ط§ظ…طھط­ط§ظ†
                     await sock.sendMessage(chatId, {
                         image: { url: "https://cdn-icons-png.flaticon.com/512/4201/4201973.png" },
-                        caption: `ط¹ظپظˆط§ظ‹ ظٹط§ *${studentName}*طŒ\nâڑ ï¸ڈ ظٹط¬ط¨ ط­ظ„ *${formattedMissing.join(" ظˆ ")}* ظ„ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط§ظ„ط´ظ‡ط§ط¯ط©. ًں“ڑâœچï¸ڈ`
+                        caption: `ط¹ظپظˆط§ظ‹ ظٹط§ *${studentName}*طŒ\nâڑ ï¸ڈ ظٹط¬ط¨ ط¨ط¯ط، ط­ظ„ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹط© ظˆط¥ظ†ظ‡ط§ط¦ظ‡ط§ ظ„ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط§ظ„ط´ظ‡ط§ط¯ط©. ًں“ڑâœچï¸ڈ`
                     }, { quoted: message });
+                    resultsSessions.delete(chatId);
+                    return { handled: true };
                 } else {
-                    // ط­ط§ظ„ط© ط§ط³طھط«ظ†ط§ط¦ظٹط©: ط­ظ„ ظƒظ„ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ظ„ظƒظ† ط§ظ„ط´ظ‡ط§ط¯ط© ظ„ظ… طھط±ظپط¹ ط¨ط¹ط¯
-                    await sock.sendMessage(chatId, {
-                        text: `ط£ظ‡ظ„ط§ظ‹ ظٹط§ *${studentName}*طŒ\nâœ… ظ„ظ‚ط¯ ط£طھظ…ظ…طھ ط¬ظ…ظٹط¹ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ط¨ظ†ط¬ط§ط­طŒ ط¬ط§ط±ظٹ ظ…ط±ط§ط¬ط¹ط© ظˆط±طµط¯ ط´ظ‡ط§ط¯طھظƒ ط­ط§ظ„ظٹط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.`
-                    }, { quoted: message });
+                    // ط­ط§ظ„ط© ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط°ظٹ ط­ظ„ ط¨ط¹ط¶ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ظˆظ„ظ… ظٹظƒظ…ظ„ظ‡ط§
+                    let missingExams = [];
+                    for (let j = 0; j < status.length; j++) {
+                        if (!status[j]) missingExams.push(examNames[j]);
+                    }
+
+                    if (missingExams.length > 0) {
+                        let formattedMissing = missingExams.map((exam, index) => index === 0 ? exam : exam.replace("ط§ظ„ط§ظ…طھط­ط§ظ† ", ""));
+                        await sock.sendMessage(chatId, {
+                            image: { url: "https://cdn-icons-png.flaticon.com/512/4201/4201973.png" },
+                            caption: `ط¹ظپظˆط§ظ‹ ظٹط§ *${studentName}*طŒ\nâڑ ï¸ڈ ظٹط¬ط¨ ط­ظ„ *${formattedMissing.join(" ظˆ ")}* ظ„ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط§ظ„ط´ظ‡ط§ط¯ط©. ًں“ڑâœچï¸ڈ`
+                        }, { quoted: message });
+                        resultsSessions.delete(chatId);
+                        return { handled: true };
+                    }
                 }
             }
-            resultsSessions.delete(chatId);
-            return { handled: true };
         }
 
-        // 3. ط¥ط°ط§ ظ„ظ… ظٹظˆط¬ط¯ ط§ظ„ط§ط³ظ… ظˆظ„ط§ ط§ظ„ط´ظ‡ط§ط¯ط©
+        // 3. ط¥ط°ط§ ظ„ظ… ظٹظ†ط¬ط­ ط£ظٹ ظ…ظ† ظ…ط­ط§ظˆظ„ط§طھ ط§ظ„ط¨ط­ط« (ط£ظˆ ط§ظ„ط·ط§ظ„ط¨ ظپظٹ USER ظˆظ„ظƒظ† ظ„ط§ طھظˆط¬ط¯ ط´ظ‡ط§ط¯ط©)
         await sock.sendMessage(chatId, {
             text: `âڑ ï¸ڈ *ط§ظ„ط±ظ‚ظ… ط§ظ„ظƒظˆط¯ظٹ ط؛ظٹط± ط³ظ„ظٹظ…*\n\nطھط£ظƒط¯ ظ…ظ† ظƒطھط§ط¨ط© ط§ظ„ط±ظ‚ظ… ط¨ط´ظƒظ„ طµط­ظٹط­ ط£ظˆ طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¥ط¯ط§ط±ط© ًں‘‘`
         }, { quoted: message });
