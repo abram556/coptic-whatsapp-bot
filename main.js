@@ -5,7 +5,6 @@
 
 const settings = require('./settings');
 require('./config.js');
-const axios = require('axios');
 
 const { isBanned } = require('./lib/isBanned');
 const { isAdmin, grantAdmin, revokeAdmin, isValidAdminCommand } = require('./lib/adminAuth');
@@ -786,14 +785,6 @@ async function handleMessages(sock, messageUpdate) {
         const lower = trimmed.toLowerCase();
 
         // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
-        // USER: /dailyword
-        // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
-        if (lower === '/dailyword' || lower === 'ظƒظ„ظ…ط© ط§ظ„ظٹظˆظ…' || lower === 'ط§ظ„ظƒظ„ظ…ط©') {
-            await sendDailyWord(sock, chatId, message);
-            return;
-        }
-
-        // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
         // "/" ظˆط­ط¯ظ‡ط§ â†’ ظ‚ط§ط¦ظ…ط© ط£ط¯ظ…ظ†
         // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
         if (trimmed === '/') {
@@ -1342,31 +1333,6 @@ async function handleBatchLesson(sock, chatId, message, text) {
             `â‌Œ ظپط´ظ„: *${failed}*\n` +
             `ًں“ٹ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ: ط§ظ„ط£ظˆظ„ ${learnDbSize(1)} | ط§ظ„ط«ط§ظ†ظٹ ${learnDbSize(2)}`
     }, { quoted: message });
-}
-
-// â”€â”€ ط¯ط§ظ„ط© ط§ظ„ظƒظ„ظ…ط© ط§ظ„ظٹظˆظ…ظٹط© â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-async function sendDailyWord(sock, chatId, message) {
-    try {
-        await sock.sendMessage(chatId, { react: { text: 'âœ¨', key: message.key } });
-        const res = await axios.get(`${settings.appsScriptUrl}?action=getDailyWord`);
-        if (res.data && res.data.coptic) {
-            const { coptic, arabic, pron } = res.data;
-            await sock.sendMessage(chatId, {
-                text: 
-                    `âœ¨ *ظƒظ„ظ…ط© ط§ظ„ظٹظˆظ… ط§ظ„ظ‚ط¨ط·ظٹط©* âœ¨\n\n` +
-                    `âک¦ï¸ڈ *ط§ظ„ظ‚ط¨ط·ظٹط©:* ${coptic}\n` +
-                    `ًں“– *ط§ظ„ط¹ط±ط¨ظٹط©:* ${arabic}\n` +
-                    `ًں—£ï¸ڈ *ط§ظ„ظ†ط·ظ‚:* ${pron}\n\n` +
-                    `ًںŒ¸ ظ†طھظ…ظ†ظ‰ ظ„ظƒظ… ظٹظˆظ…ط§ظ‹ ظ…ط¨ط§ط±ظƒط§ظ‹!\n` +
-                    `ظ…ط±ظƒط² ط§ظ„ظ„ط؛ط© ط§ظ„ظ‚ط¨ط·ظٹط©`
-            }, { quoted: message });
-        } else {
-            await sock.sendMessage(chatId, { text: `âڑ ï¸ڈ ط¹ط°ط±ط§ظ‹طŒ ظ„ظ… ط£طھظ…ظƒظ† ظ…ظ† ط¬ظ„ط¨ ظƒظ„ظ…ط© ط§ظ„ظٹظˆظ… ط­ط§ظ„ظٹط§ظ‹.` }, { quoted: message });
-        }
-    } catch (e) {
-        console.error('sendDailyWord error:', e.message);
-        await sock.sendMessage(chatId, { text: `â‌Œ ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط³ظٹط±ظپط±.` }, { quoted: message });
-    }
 }
 
 module.exports = {
