@@ -3,7 +3,7 @@ const settings = {
   author: 'إبرام مرزق',
   botName: 'مركز اللغة القبطية',
   botOwner: 'إبرام مرزق',
-  ownerNumber: '201104122515',
+  ownerNumber: '201114884405',
   adminSecret: '44',
   version: '8.0.0',
   mode: 'PUBLIC',
