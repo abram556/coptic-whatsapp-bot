@@ -4,18 +4,19 @@
   "description": "WhatsApp Bot — مركز اللغة القبطية",
   "main": "index.js",
   "scripts": {
-    "start": "node --max-old-space-size=512 index.js",
-    "dev": "node --max-old-space-size=512 index.js"
+    "start": "node --max-old-space-size=1024 --expose-gc index.js",
+    "dev": "node --max-old-space-size=1024 --expose-gc index.js"
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
-    "@whiskeysockets/baileys": "^6.7.18",
-    "axios": "^1.8.4",
+    "@whiskeysockets/baileys": "^6.7.21",
+    "axios": "^1.16.0",
     "chalk": "^4.1.2",
     "dotenv": "^16.4.5",
     "node-cache": "^5.1.2",
     "pino": "^8.21.0",
     "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
     "xlsx": "^0.18.5"
   },
   "engines": {
