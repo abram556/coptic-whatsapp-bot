@@ -28,7 +28,8 @@ const {
 const { 
     resultsSize, 
     reloadResultsDb,
-    registerUserInNatiga
+    registerUserInNatiga,
+    exportResultsXlsx
 } = require('./lib/resultsDb');
 
 const { 
