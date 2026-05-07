@@ -1,129 +1,140 @@
 /**
- * coptoc.js — القاموس القبطي-العربي الناطق v8.1
+ * coptoc.js — القاموس القبطي-العربي الناطق v10.0
  * ─────────────────────────────────────────────────────────────
- * البحث يعمل بالعربي أو القبطي
- * النتيجة تُظهر: الكلمة، المعنى، النوع، الأصل، الملف الصوتي
+ * تم التحديث ليتطابق بالملي مع منطق Apps Script المقدم
  * ─────────────────────────────────────────────────────────────
  */
 
 const axios = require('axios');
-const { lookupCoptocWord, formatLookupResult, formatResultForDisplay } = require('../lib/coptocDb');
+const { getFileInfo, suggestWords } = require('../lib/coptocDb');
+const { sendButtons } = require('../lib/buttons');
 
 const dictSessions    = new Map();
-const SESSION_TIMEOUT = 5 * 60 * 1000;
+const SESSION_TIMEOUT = 10 * 60 * 1000;
 
 function backHint() {
     return `\nللرجوع للقائمة الرئيسية اكتب 00`;
 }
 
-// ── إرسال الملف الصوتي مع ضمان الرابط المباشر ───────────────
-async function sendAudio(sock, chatId, message, audioUrl) {
-    if (!audioUrl) return;
+// ── إرسال الملف (صوت، صورة، فيديو، إلخ) ──────────────────────
+async function sendFile(sock, chatId, message, fileUrl, mimeType, caption, fileName) {
+    await sock.sendPresenceUpdate('composing', chatId);
+    if (!fileUrl) return;
     try {
-        const response = await axios.get(audioUrl, {
+        let downloadUrl = fileUrl;
+        // تحويل روابط درايف إلى روابط تحميل مباشرة إذا لزم الأمر
+        if (fileUrl.includes('drive.google.com')) {
+            const fileId = fileUrl.match(/[-\w]{25,}/)?.[0];
+            if (fileId) downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        }
+
+        const response = await axios.get(downloadUrl, {
             responseType : 'arraybuffer',
-            timeout      : 45000,
-            maxRedirects : 10,
-            headers      : {
-                'User-Agent'     : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept'         : 'audio/*,*/*',
-                'Accept-Language': 'ar,en;q=0.9'
-            }
+            timeout      : 60000,
+            headers      : { 'User-Agent': 'Mozilla/5.0' }
         });
         const buf = Buffer.from(response.data, 'binary');
-        if (buf.length < 500) throw new Error('الملف الصوتي فارغ أو غير صالح');
 
-        await sock.sendMessage(chatId, {
-            audio    : buf,
-            mimetype : 'audio/mpeg',
-            ptt      : false
-        }, { quoted: message });
+        const type = mimeType.split('/')[0];
+        const payload = { caption: caption };
+
+        if (type === 'audio') {
+            payload.audio = buf;
+            payload.mimetype = 'audio/mpeg';
+            payload.ptt = false;
+            delete payload.caption; // الصوت لا يدعم caption في العادة
+        } else if (type === 'image') {
+            payload.image = buf;
+        } else if (type === 'video') {
+            payload.video = buf;
+        } else {
+            payload.document = buf;
+            payload.fileName = fileName || 'file';
+            payload.mimetype = mimeType;
+        }
+
+        await sock.sendMessage(chatId, payload, { quoted: message });
+
     } catch (err) {
-        console.error('❌ خطأ في تحميل الصوت:', err.message);
-        await sock.sendMessage(chatId, {
-            text: `🔇 *تعذّر تشغيل الصوت*\nيرجى المحاولة لاحقاً أو التواصل مع المسؤول.`
-        }, { quoted: message }).catch(() => {});
+        console.error('❌ خطأ في إرسال الملف:', err.message);
+        await sock.sendMessage(chatId, { text: `🔇 *تعذّر تحميل الملف*\nالرابط: ${fileUrl}` }, { quoted: message });
     }
 }
 
-// ── تنسيق النتيجة للمستخدم (معدل لإظهار النوع والأصل) ──────────────────────────────────
-function formatResult(searchedWord, lookupResult) {
-    const { type, result } = lookupResult;
-    const formatted = formatLookupResult(lookupResult);
-    if (!formatted) return null;
+// ── عرض الاقتراحات (قائمة نصية مضمونة) ──────────────────────
+async function sendSuggestions(sock, chatId, message, suggestions) {
+    await sock.sendPresenceUpdate('composing', chatId);
+    
+    // نأخذ أول 20 اقتراحاً
+    const limited = suggestions.slice(0, 20);
+    const list = limited.map((s, i) => `*${i + 1}* - ${s}`).join('\n');
+    
+    const text = `💡 *اقتراحات مشابهة لطلبك:*\n\n` +
+                 `${list}\n\n` +
+                 `تفضل بكتابة الكلمة الصحيحة من القائمة أعلاه 🔍` + 
+                 backHint();
 
-    if (type === 'coptic') {
-        // البحث بالكلمة القبطية
-        const copticWordsDisplay = formatted.copticWords?.join('، ') || searchedWord;
-        const arabicMeanings = formatted.arabicMeanings?.join('، ') || '—';
-        const wordType = formatted.wordType || '—';
-        const wordOrigin = formatted.wordOrigin || '—';
-        
-        let responseText = `الكلمة: ${copticWordsDisplay}\n`;
-        responseText += `المعنى العربي: ${arabicMeanings}\n`;
-        if (wordType && wordType !== '—') {
-            responseText += `النوع: ${wordType}\n`;
-        }
-        if (wordOrigin && wordOrigin !== '—') {
-            responseText += `الأصل: ${wordOrigin}`;
-        }
-        return responseText;
-    } else {
-        // البحث بالكلمة العربية
-        const arabicWordDisplay = formatted.arabicWord || searchedWord;
-        const copticWords = formatted.copticWords?.join('، ') || '—';
-        const wordType = formatted.wordType || '—';
-        const wordOrigin = formatted.wordOrigin || '—';
-        
-        let responseText = `الكلمة: ${arabicWordDisplay}\n`;
-        responseText += `المعنى القبطي: ${copticWords}\n`;
-        if (wordType && wordType !== '—') {
-            responseText += `النوع: ${wordType}\n`;
-        }
-        if (wordOrigin && wordOrigin !== '—') {
-            responseText += `الأصل: ${wordOrigin}`;
-        }
-        return responseText;
-    }
+    await sock.sendMessage(chatId, { text }, { quoted: message });
 }
 
 // ── تنفيذ البحث الفعلي ────────────────────────────────────────
-async function performCoptocLookup(sock, chatId, message, word) {
-    const found = lookupCoptocWord(word);
+async function performCoptocLookup(sock, chatId, message, word, index = 0) {
+    await sock.sendPresenceUpdate('composing', chatId);
+    const matchingFiles = getFileInfo(word);
 
-    if (!found) {
-        await sock.sendMessage(chatId, {
-            text:
-                `القاموس قيد التطوير حاليا وسيتم اضافة معنى هذه الكلمة لاحقا\n\n` +
-                backHint()
-        }, { quoted: message });
-        dictSessions.set(chatId, { waiting: true, timestamp: Date.now() });
+    // إذا كانت النتيجة "قيد التطوير"
+    if (matchingFiles.length > 0 && matchingFiles[0].messages[0] === "القاموس قيد التطوير حاليا وسيتم اضافة معنى هذه الكلمة لاحقا") {
+        const suggestions = suggestWords(word);
+        if (suggestions.length > 0) {
+            await sendSuggestions(sock, chatId, message, suggestions);
+            dictSessions.set(chatId, { waiting: true, searchTerm: word, timestamp: Date.now() });
+        } else {
+            await sock.sendMessage(chatId, { text: matchingFiles[0].messages[0] + backHint() }, { quoted: message });
+        }
         return;
     }
 
+    if (matchingFiles.length === 0) {
+        await sock.sendMessage(chatId, { text: "القاموس قيد التطوير حاليا وسيتم اضافة معنى هذه الكلمة لاحقا" + backHint() }, { quoted: message });
+        return;
+    }
+
+    // عرض النتيجة بناءً على الفهرس
+    const fileInfo = matchingFiles[index];
+    const caption = fileInfo.messages.join('\n');
+
     await sock.sendMessage(chatId, { react: { text: '🔍', key: message.key } });
+    
+    // إرسال النص أولاً في رسالة منفصلة لأن الصوت لا يدعم Caption
+    await sock.sendMessage(chatId, { text: caption }, { quoted: message });
 
-    const responseText = formatResult(word, found);
-    if (responseText) {
-        await sock.sendMessage(chatId, { text: responseText }, { quoted: message });
+    await sendFile(sock, chatId, message, fileInfo.fileUrl, fileInfo.mimeType, "", fileInfo.fileName);
+
+    // إذا كان هناك المزيد من المعاني
+    if (matchingFiles.length > index + 1) {
+        dictSessions.set(chatId, { 
+            waiting: true, 
+            searchTerm: word, 
+            currentIndex: index, 
+            results: matchingFiles,
+            timestamp: Date.now() 
+        });
+
+        await sendButtons(sock, chatId, message, '📖 معاني أخرى', 'هناك معنى اخر للكلمة التي بحثت بها', '', [
+            { id: 'next_meaning', text: 'اضغط هنا لعرضه' }
+        ]);
+    } else {
+        await sock.sendMessage(chatId, { text: `✨ تفضل بكتابة كلمة أخرى للبحث في القاموس 🔍` + backHint() });
+        dictSessions.set(chatId, { waiting: true, timestamp: Date.now() });
     }
-
-    // إرسال الصوت إذا كان موجوداً
-    if (found.result.audioUrl) {
-        await sendAudio(sock, chatId, message, found.result.audioUrl);
-    }
-
-    await sock.sendMessage(chatId, {
-        text: `✨ تفضل بكتابة كلمة أخرى للبحث في القاموس 🔍\n` + backHint()
-    });
 
     await sock.sendMessage(chatId, { react: { text: '✅', key: message.key } });
-    dictSessions.set(chatId, { waiting: true, timestamp: Date.now() });
 }
 
 // ── الأمر الرئيسي للقاموس ────────────────────────────────────
 async function coptocCommand(sock, chatId, message) {
     try {
+        await sock.sendPresenceUpdate('composing', chatId);
         dictSessions.set(chatId, { waiting: true, timestamp: Date.now() });
         await sock.sendMessage(chatId, {
             text:
@@ -146,10 +157,18 @@ async function handleCoptocReply(sock, chatId, message, userMessage) {
         return false;
     }
 
-    const word = userMessage.trim();
-    if (!word) return false;
+    const trimmed = userMessage.trim();
+    if (!trimmed) return false;
 
-    await performCoptocLookup(sock, chatId, message, word);
+    // معالجة "Next Meaning"
+    if (trimmed === 'next_meaning' && session.searchTerm && session.results) {
+        const nextIndex = (session.currentIndex || 0) + 1;
+        await performCoptocLookup(sock, chatId, message, session.searchTerm, nextIndex);
+        return true;
+    }
+
+    // معالجة البحث العادي أو اختيار من الاقتراحات
+    await performCoptocLookup(sock, chatId, message, trimmed);
     return true;
 }
 
