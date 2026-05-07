@@ -34,6 +34,19 @@ const PORT = process.env.PORT || 7860;
 
 global.botStatus = { connected: false, qrDataUrl: null, pairingCode: null };
 
+function keepAlive() {
+    const url = process.env.RENDER_EXTERNAL_URL;
+    if (url) {
+        console.log(chalk.yellow(`🚀 Keep-Alive: Ping Sent to ${url}`));
+        http.get(url, (res) => {
+            console.log(chalk.dim(`📡 Keep-Alive Status: ${res.statusCode}`));
+        }).on('error', (err) => {
+            console.error('❌ Keep-Alive Error:', err.message);
+        });
+    }
+}
+setInterval(keepAlive, 10 * 60 * 1000); // كل 10 دقائق
+
 function buildQrPage(qrDataUrl, pairingCode) {
     const pairingHtml = pairingCode 
         ? `<div class="pairing-container">
