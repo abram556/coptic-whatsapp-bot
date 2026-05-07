@@ -4,19 +4,18 @@ WORKDIR /app
 
 RUN apt-get update && \
     apt-get install -y git ffmpeg imagemagick && \
-        rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/*
 
-        COPY package*.json ./
-        RUN npm install --omit=dev
+COPY package*.json ./
+RUN npm install --omit=dev
 
-        COPY . .
+COPY . .
 
-        RUN mkdir -p session data lib/data
+RUN mkdir -p session data lib/data
 
-        ENV PORT=7860
-        ENV NODE_ENV=production
+ENV PORT=7860
+ENV NODE_ENV=production
 
-        EXPOSE 7860
+EXPOSE 7860
 
-        CMD ["node", "--max-old-space-size=512", "index.js"]
-        
+CMD ["node", "--max-old-space-size=512", "index.js"]
