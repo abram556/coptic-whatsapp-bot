@@ -32,41 +32,47 @@ const settings = require('./settings');
 const http = require('http');
 const PORT = process.env.PORT || 7860;
 
-global.botStatus = { connected: false, qrDataUrl: null, qrRaw: null };
+global.botStatus = { connected: false, qrDataUrl: null, pairingCode: null };
 
-const HTML_LOADING = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<meta http-equiv="refresh" content="5"><title>Bot Starting...</title>
-<style>body{font-family:sans-serif;text-align:center;padding:60px;background:#f9fafb;}
-h1{color:#6b7280;font-size:2em;}p{color:#9ca3af;}</style></head>
-<body><h1>⏳ البوت بيشتغل...</h1><p>الصفحة بتتحدث تلقائياً كل 5 ثوان</p></body></html>`;
+function buildQrPage(qrDataUrl, pairingCode) {
+    const pairingHtml = pairingCode 
+        ? `<div class="pairing-container">
+             <p class="pairing-label">أو استخدم كود الاقتران:</p>
+             <div class="pairing-code">${pairingCode}</div>
+           </div>`
+        : '';
 
-function buildQrPage(qrDataUrl) {
     return `<!DOCTYPE html><html><head><meta charset="utf-8">
-<meta http-equiv="refresh" content="30"><title>امسح QR Code</title>
+<meta http-equiv="refresh" content="30"><title>ربط البوت</title>
 <style>
   body{font-family:sans-serif;text-align:center;padding:30px;background:#fefce8;direction:rtl;}
   h1{color:#854d0e;font-size:2em;margin-bottom:5px;}
   .sub{color:#92400e;margin-bottom:25px;font-size:1.1em;}
   img{border:6px solid #1d4ed8;border-radius:16px;max-width:280px;box-shadow:0 4px 20px rgba(0,0,0,.15);}
+  .pairing-container{margin-top:20px;padding:15px;background:#fff;border-radius:12px;border:2px dashed #1d4ed8;display:inline-block;}
+  .pairing-label{color:#1e40af;font-weight:bold;margin-bottom:10px;font-size:1.1em;}
+  .pairing-code{font-family:monospace;font-size:2.2em;letter-spacing:5px;color:#1d4ed8;background:#eff6ff;padding:10px 20px;border-radius:8px;}
   .steps{text-align:right;max-width:320px;margin:20px auto;background:#fff;
          padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
   .steps p{margin:8px 0;font-size:1.05em;color:#374151;}
   .note{color:#6b7280;font-size:.9em;margin-top:20px;}
-  .timer{color:#ef4444;font-weight:bold;}
 </style></head>
 <body>
   <h1>🔗 ربط البوت بالواتساب</h1>
-  <p class="sub">امسح الكود ده بكاميرا واتساب</p>
-  <img src="${qrDataUrl}" alt="QR Code"/>
+  <p class="sub">امسح الكود ده أو استخدم كود الاقتران</p>
+  
+  ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR Code"/>` : '<p>⏳ جاري توليد الكود...</p>'}
+  
+  ${pairingHtml}
+
   <div class="steps">
-    <p>📱 <strong>الخطوات:</strong></p>
-    <p>1️⃣ افتح <strong>واتساب</strong> على موبايلك</p>
-    <p>2️⃣ اضغط <strong>الإعدادات</strong> (النقاط الثلاث)</p>
-    <p>3️⃣ اختار <strong>الأجهزة المرتبطة</strong></p>
-    <p>4️⃣ اضغط <strong>ربط جهاز</strong></p>
-    <p>5️⃣ <strong>امسح الصورة أعلاه</strong></p>
+    <p>📱 <strong>الخطوات بالكود:</strong></p>
+    <p>1️⃣ افتح <strong>الأجهزة المرتبطة</strong> في واتساب</p>
+    <p>2️⃣ اضغط <strong>ربط جهاز</strong></p>
+    <p>3️⃣ اضغط <strong>الربط برقم الهاتف بدلاً من ذلك</strong></p>
+    <p>4️⃣ أدخل الكود الموضح أعلاه</p>
   </div>
-  <p class="note">⏱ الكود بيتجدد تلقائياً كل 30 ثانية</p>
+  <p class="note">⏱ الأكواد تتجدد تلقائياً لضمان الأمان</p>
 </body></html>`;
 }
 
@@ -80,10 +86,8 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     if (global.botStatus.connected) {
         res.end(HTML_CONNECTED);
-    } else if (global.botStatus.qrDataUrl) {
-        res.end(buildQrPage(global.botStatus.qrDataUrl));
     } else {
-        res.end(HTML_LOADING);
+        res.end(buildQrPage(global.botStatus.qrDataUrl, global.botStatus.pairingCode));
     }
 }).listen(PORT, () => {
     console.log(chalk.cyan(`🌐 Web server على port ${PORT}`));
@@ -93,11 +97,15 @@ http.createServer((req, res) => {
 setInterval(() => { if (global.gc) global.gc(); }, 60_000);
 setInterval(() => {
     const used = process.memoryUsage().rss / 1024 / 1024;
-    if (used > 400) {
-        console.log(chalk.red('⚠️ RAM مرتفع — إعادة تشغيل...'));
+    if (used > 800) { // زيادة الحد لـ 800 ميجا لتجنب التهنيج
+        console.log(chalk.red('⚠️ RAM مرتفع جداً — إعادة تشغيل آمنة...'));
         process.exit(1);
     }
 }, 30_000);
+
+// منع معالجة نفس الرسالة مرتين (حل جذري للخريف والتهنيج)
+const processedMessages = new Set();
+setInterval(() => processedMessages.clear(), 10 * 60 * 1000); // تنظيف كل 10 دقائق
 
 store.readFromFile();
 setInterval(() => store.writeToFile(), settings.storeWriteInterval || 10000);
@@ -113,8 +121,8 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '20.0.04'],
+        printQRInTerminal: true, // تفعيل طباعة الكود في التيرمنال للمسح بالهاتف
+        browser: ["Ubuntu", "Chrome", "20.0.04"], // تغيير الهوية لتحسين توافق Pairing Code
         auth: {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(
@@ -134,6 +142,25 @@ async function startBot() {
         defaultQueryTimeoutMs: undefined
     });
 
+    // ── Pairing Code Logic (مفعل للربط السريع) ──────────────────
+    if (!sock.authState.creds.registered) {
+        const phoneNumber = settings.ownerNumber.replace(/[^0-9]/g, '');
+        
+        const requestPairing = async () => {
+            if (sock.authState.creds.registered) return;
+            console.log(chalk.cyan(`\n⏳ جاري طلب كود الاقتران للرقم: ${phoneNumber}...`));
+            try {
+                let code = await sock.requestPairingCode(phoneNumber);
+                code = code?.match(/.{1,4}/g)?.join("-") || code;
+                global.botStatus.pairingCode = code;
+                console.log(chalk.black(chalk.bgGreen(`\n✅ كود الاقتران الخاص بك هو: ${code}\n`)));
+            } catch (e) {
+                console.error(chalk.red('❌ فشل طلب كود الاقتران:'), e.message);
+            }
+        };
+        setTimeout(requestPairing, 5000);
+    }
+
     store.bind(sock.ev);
 
     // ── QR code handler ──────────────────────────────────────
@@ -145,7 +172,7 @@ async function startBot() {
                 const dataUrl = await QRCode.toDataURL(qr, { width: 300, margin: 2 });
                 global.botStatus.qrDataUrl = dataUrl;
                 global.botStatus.connected = false;
-                console.log(chalk.yellow(`📱 QR Code جاهز — افتح: https://abram55-coptic-whatsapp-bot.hf.space`));
+                console.log(chalk.yellow(`📱 QR Code جاهز — متاح على لوحة التحكم`));
             } catch (e) {
                 console.error('QR error:', e.message);
             }
@@ -180,12 +207,18 @@ async function startBot() {
         try {
             const mek = chatUpdate.messages[0];
             if (!mek.message) return;
+            
+            // التحقق من تكرار الرسالة
+            const msgId = mek.key.id;
+            if (processedMessages.has(msgId)) return;
+            processedMessages.add(msgId);
+
             mek.message = Object.keys(mek.message)[0] === 'ephemeralMessage'
                 ? mek.message.ephemeralMessage.message
                 : mek.message;
             if (mek.key?.remoteJid === 'status@broadcast') return;
             if (mek.key.id.startsWith('BAE5') && mek.key.id.length === 16) return;
-            if (sock?.msgRetryCounterCache) sock.msgRetryCounterCache.clear();
+            
             await handleMessages(sock, chatUpdate);
         } catch (err) {
             console.error('❌ messages.upsert:', err);
