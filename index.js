@@ -7,7 +7,6 @@ require('./settings');
 const { Boom }  = require('@hapi/boom');
 const fs        = require('fs');
 const chalk     = require('chalk');
-const QRCode    = require('qrcode');
 const {
     handleMessages,
     handleGroupParticipantUpdate,
@@ -47,45 +46,38 @@ function keepAlive() {
 }
 setInterval(keepAlive, 10 * 60 * 1000); // كل 10 دقائق
 
-function buildQrPage(qrDataUrl, pairingCode) {
-    const pairingHtml = pairingCode 
-        ? `<div class="pairing-container">
-             <p class="pairing-label">أو استخدم كود الاقتران:</p>
-             <div class="pairing-code">${pairingCode}</div>
-           </div>`
-        : '';
-
+function buildQrPage(pairingCode) {
     return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <meta http-equiv="refresh" content="30"><title>ربط البوت</title>
 <style>
-  body{font-family:sans-serif;text-align:center;padding:30px;background:#fefce8;direction:rtl;}
-  h1{color:#854d0e;font-size:2em;margin-bottom:5px;}
-  .sub{color:#92400e;margin-bottom:25px;font-size:1.1em;}
-  img{border:6px solid #1d4ed8;border-radius:16px;max-width:280px;box-shadow:0 4px 20px rgba(0,0,0,.15);}
-  .pairing-container{margin-top:20px;padding:15px;background:#fff;border-radius:12px;border:2px dashed #1d4ed8;display:inline-block;}
-  .pairing-label{color:#1e40af;font-weight:bold;margin-bottom:10px;font-size:1.1em;}
-  .pairing-code{font-family:monospace;font-size:2.2em;letter-spacing:5px;color:#1d4ed8;background:#eff6ff;padding:10px 20px;border-radius:8px;}
-  .steps{text-align:right;max-width:320px;margin:20px auto;background:#fff;
-         padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
-  .steps p{margin:8px 0;font-size:1.05em;color:#374151;}
-  .note{color:#6b7280;font-size:.9em;margin-top:20px;}
+  body{font-family:sans-serif;text-align:center;padding:30px;background:#f0f9ff;direction:rtl;}
+  h1{color:#1e40af;font-size:2.2em;margin-bottom:10px;}
+  .sub{color:#1e3a8a;margin-bottom:30px;font-size:1.2em;}
+  .pairing-container{padding:25px;background:#fff;border-radius:20px;border:3px solid #3b82f6;display:inline-block;box-shadow:0 10px 25px rgba(59,130,246,0.1);}
+  .pairing-label{color:#1e40af;font-weight:bold;margin-bottom:15px;font-size:1.3em;}
+  .pairing-code{font-family:monospace;font-size:3em;letter-spacing:8px;color:#2563eb;background:#f8fafc;padding:15px 30px;border-radius:12px;border:2px solid #e2e8f0;}
+  .steps{text-align:right;max-width:400px;margin:30px auto;background:#fff;
+         padding:25px;border-radius:15px;box-shadow:0 4px 12px rgba(0,0,0,.05);border-right:5px solid #3b82f6;}
+  .steps p{margin:12px 0;font-size:1.1em;color:#334155;}
+  .note{color:#64748b;font-size:.95em;margin-top:25px;}
 </style></head>
 <body>
-  <h1>🔗 ربط البوت بالواتساب</h1>
-  <p class="sub">امسح الكود ده أو استخدم كود الاقتران</p>
+  <h1>🔗 ربط البوت عبر كود الاقتران</h1>
+  <p class="sub">استخدم الكود التالي لربط البوت برقم هاتفك</p>
   
-  ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR Code"/>` : '<p>⏳ جاري توليد الكود...</p>'}
-  
-  ${pairingHtml}
+  <div class="pairing-container">
+    <p class="pairing-label">كود الاقتران الخاص بك:</p>
+    <div class="pairing-code">${pairingCode || '⏳ جاري الطلب...'}</div>
+  </div>
 
   <div class="steps">
-    <p>📱 <strong>الخطوات بالكود:</strong></p>
+    <p>📱 <strong>خطوات الربط:</strong></p>
     <p>1️⃣ افتح <strong>الأجهزة المرتبطة</strong> في واتساب</p>
     <p>2️⃣ اضغط <strong>ربط جهاز</strong></p>
     <p>3️⃣ اضغط <strong>الربط برقم الهاتف بدلاً من ذلك</strong></p>
     <p>4️⃣ أدخل الكود الموضح أعلاه</p>
   </div>
-  <p class="note">⏱ الأكواد تتجدد تلقائياً لضمان الأمان</p>
+  <p class="note">⚠️ تأكد أن رقم الهاتف في الإعدادات هو: <strong>${settings.ownerNumber}</strong></p>
 </body></html>`;
 }
 
@@ -100,7 +92,7 @@ http.createServer((req, res) => {
     if (global.botStatus.connected) {
         res.end(HTML_CONNECTED);
     } else {
-        res.end(buildQrPage(global.botStatus.qrDataUrl, global.botStatus.pairingCode));
+        res.end(buildQrPage(global.botStatus.pairingCode));
     }
 }).listen(PORT, () => {
     console.log(chalk.cyan(`🌐 Web server على port ${PORT}`));
@@ -134,7 +126,7 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: true, // تفعيل طباعة الكود في التيرمنال للمسح بالهاتف
+        printQRInTerminal: false, // تم الإيقاف بناءً على طلب المستخدم للاعتماد على كود الاقتران
         browser: ["Ubuntu", "Chrome", "20.0.04"], // تغيير الهوية لتحسين توافق Pairing Code
         auth: {
             creds: state.creds,
@@ -181,14 +173,8 @@ async function startBot() {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-            try {
-                const dataUrl = await QRCode.toDataURL(qr, { width: 300, margin: 2 });
-                global.botStatus.qrDataUrl = dataUrl;
-                global.botStatus.connected = false;
-                console.log(chalk.yellow(`📱 QR Code جاهز — متاح على لوحة التحكم`));
-            } catch (e) {
-                console.error('QR error:', e.message);
-            }
+            // تجاهل الباركود والاعتماد على كود الاقتران
+            global.botStatus.connected = false;
         }
 
         if (connection === 'open') {
